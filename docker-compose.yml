@@ -1,0 +1,219 @@
+version: '3.8'
+
+services:
+  # ========================================
+  # МУЛЬТИБАНКОВСКОЕ ПРИЛОЖЕНИЕ
+  # ========================================
+  
+  # PostgreSQL Database для мультибанка
+  db:
+    image: postgres:15-alpine
+    container_name: multibank-db
+    environment:
+      POSTGRES_USER: multibank_user
+      POSTGRES_PASSWORD: multibank_pass
+      POSTGRES_DB: multibank_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U multibank_user -d multibank_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Multibank API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multibank-api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://multibank_user:multibank_pass@db:5432/multibank_db
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production-use-env-var}
+      DEBUG: ${DEBUG:-true}
+      USE_LOCAL_BANKS: ${USE_LOCAL_BANKS:-true}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      vbank:
+        condition: service_healthy
+      abank:
+        condition: service_healthy
+      sbank:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./frontend:/app/frontend
+    restart: unless-stopped
+
+  # ========================================
+  # БАНКИ ИЗ BANK-IN-A-BOX
+  # ========================================
+
+  # VBank Database
+  vbank-db:
+    image: postgres:15-alpine
+    container_name: vbank-db
+    environment:
+      POSTGRES_USER: hackapi_user
+      POSTGRES_PASSWORD: hackapi_pass
+      POSTGRES_DB: vbank_db
+    volumes:
+      - vbank_data:/var/lib/postgresql/data
+      - ./bank-in-a-box/shared/database/init-vbank.sql:/docker-entrypoint-initdb.d/init-vbank.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackapi_user -d vbank_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # VBank API
+  vbank:
+    build:
+      context: ./bank-in-a-box
+      dockerfile: Dockerfile
+    container_name: vbank-api
+    environment:
+      BANK_CODE: vbank
+      BANK_NAME: Virtual Bank
+      BANK_DESCRIPTION: Виртуальный банк - эмуляция от организаторов
+      DATABASE_URL: postgresql://hackapi_user:hackapi_pass@vbank-db:5432/vbank_db
+      SECRET_KEY: vbank-secret-key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      API_VERSION: 2.1
+      REGISTRY_URL: http://localhost:3000
+      PUBLIC_URL: http://localhost:8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      vbank-db:
+        condition: service_healthy
+    volumes:
+      - ./bank-in-a-box/shared/keys:/app/shared/keys:ro
+    command: python run.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8001/health\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ABank Database
+  abank-db:
+    image: postgres:15-alpine
+    container_name: abank-db
+    environment:
+      POSTGRES_USER: hackapi_user
+      POSTGRES_PASSWORD: hackapi_pass
+      POSTGRES_DB: abank_db
+    volumes:
+      - abank_data:/var/lib/postgresql/data
+      - ./bank-in-a-box/shared/database/init-abank.sql:/docker-entrypoint-initdb.d/init-abank.sql
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackapi_user -d abank_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ABank API
+  abank:
+    build:
+      context: ./bank-in-a-box
+      dockerfile: Dockerfile
+    container_name: abank-api
+    environment:
+      BANK_CODE: abank
+      BANK_NAME: A Bank
+      BANK_DESCRIPTION: Банк A - эмуляция от организаторов
+      DATABASE_URL: postgresql://hackapi_user:hackapi_pass@abank-db:5432/abank_db
+      SECRET_KEY: abank-secret-key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      API_VERSION: 2.1
+      REGISTRY_URL: http://localhost:3000
+      PUBLIC_URL: http://localhost:8002
+    ports:
+      - "8002:8002"
+    depends_on:
+      abank-db:
+        condition: service_healthy
+    volumes:
+      - ./bank-in-a-box/shared/keys:/app/shared/keys:ro
+    command: python run.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8002/health\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # SBank Database
+  sbank-db:
+    image: postgres:15-alpine
+    container_name: sbank-db
+    environment:
+      POSTGRES_USER: hackapi_user
+      POSTGRES_PASSWORD: hackapi_pass
+      POSTGRES_DB: sbank_db
+    volumes:
+      - sbank_data:/var/lib/postgresql/data
+      - ./bank-in-a-box/shared/database/init-sbank.sql:/docker-entrypoint-initdb.d/init-sbank.sql
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackapi_user -d sbank_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SBank API
+  sbank:
+    build:
+      context: ./bank-in-a-box
+      dockerfile: Dockerfile
+    container_name: sbank-api
+    environment:
+      BANK_CODE: sbank
+      BANK_NAME: S Bank
+      BANK_DESCRIPTION: Банк S - эмуляция от организаторов
+      DATABASE_URL: postgresql://hackapi_user:hackapi_pass@sbank-db:5432/sbank_db
+      SECRET_KEY: sbank-secret-key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      API_VERSION: 2.1
+      REGISTRY_URL: http://localhost:3000
+      PUBLIC_URL: http://localhost:8003
+    ports:
+      - "8003:8003"
+    depends_on:
+      sbank-db:
+        condition: service_healthy
+    volumes:
+      - ./bank-in-a-box/shared/keys:/app/shared/keys:ro
+    command: python run.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8003/health\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+  vbank_data:
+  abank_data:
+  sbank_data:
+

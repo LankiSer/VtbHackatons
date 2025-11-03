@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мультибанк - Единый интерфейс финансового сервиса</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .banks-list {
+            margin-top: 20px;
+        }
+
+        .bank-item {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bank-item.connected {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+
+        .bank-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .bank-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .connect-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .connect-btn:hover {
+            background: #5568d3;
+        }
+
+        .connect-btn.connected {
+            background: #4caf50;
+            cursor: default;
+        }
+
+        .logout-btn {
+            background: #f44336;
+            margin-top: 20px;
+        }
+
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .toggle-form a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+
+        /* Модальное окно для подключения банка */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: auto;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .modal-header p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        .modal-footer .cancel-btn {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .modal-footer .cancel-btn:hover {
+            background: #d0d0d0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Форма регистрации -->
+    <div id="register-form" class="container">
+        <h1>Регистрация</h1>
+        <p class="subtitle">Создайте аккаунт для начала работы</p>
+        <div id="register-error" class="error hidden"></div>
+        <div id="register-success" class="success hidden"></div>
+        <form id="register">
+            <div class="form-group">
+                <label>Полное имя</label>
+                <input type="text" id="reg-full-name" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="reg-email" required>
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="reg-password" required>
+            </div>
+            <button type="submit">Зарегистрироваться</button>
+        </form>
+        <div class="toggle-form">
+            Уже есть аккаунт? <a onclick="showLogin()">Войти</a>
+        </div>
+    </div>
+
+    <!-- Форма входа -->
+    <div id="login-form" class="container hidden">
+        <h1>Вход</h1>
+        <p class="subtitle">Войдите в свой аккаунт</p>
+        <div id="login-error" class="error hidden"></div>
+        <form id="login">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button type="submit">Войти</button>
+        </form>
+        <div class="toggle-form">
+            Нет аккаунта? <a onclick="showRegister()">Зарегистрироваться</a>
+        </div>
+    </div>
+
+    <!-- Главная страница -->
+    <div id="dashboard" class="container hidden">
+        <h1>Мультибанк</h1>
+        <p class="subtitle">Подключите банки для агрегации данных</p>
+        
+        <div id="dashboard-error" class="error hidden"></div>
+        <div id="dashboard-success" class="success hidden"></div>
+
+        <h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 20px;">Доступные банки</h2>
+        <div id="banks-list" class="banks-list"></div>
+
+        <h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 20px;">Мои подключения</h2>
+        <div id="connections-list" class="banks-list"></div>
+
+        <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+
+    <!-- Модальное окно для подключения банка -->
+    <div id="bank-connect-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" onclick="closeBankModal()">&times;</span>
+                <h2 id="modal-bank-name">Подключение к банку</h2>
+                <p>Введите учетные данные для подключения к банку</p>
+            </div>
+            <form id="bank-connect-form">
+                <div class="form-group">
+                    <label>Client ID</label>
+                    <input type="text" id="modal-client-id" required placeholder="Введите client_id">
+                </div>
+                <div class="form-group">
+                    <label>Client Secret</label>
+                    <input type="password" id="modal-client-secret" required placeholder="Введите client_secret">
+                </div>
+                <div id="modal-error" class="error hidden"></div>
+                <div class="modal-footer">
+                    <button type="button" class="cancel-btn" onclick="closeBankModal()">Отмена</button>
+                    <button type="submit">Подключить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let authToken = localStorage.getItem('auth_token');
+
+        // Проверка авторизации при загрузке
+        if (authToken) {
+            showDashboard();
+        } else {
+            showLogin();
+        }
+
+        function showRegister() {
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            loadBanks();
+            loadConnections();
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            authToken = null;
+            showLogin();
+        }
+
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        function showSuccess(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        // Регистрация
+        document.getElementById('register').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const fullName = document.getElementById('reg-full-name').value;
+
+            // Очищаем предыдущие сообщения
+            document.getElementById('register-error').classList.add('hidden');
+            document.getElementById('register-success').classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, full_name: fullName })
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    showError('register-error', 'Ошибка обработки ответа сервера');
+                    return;
+                }
+
+                if (response.ok) {
+                    showSuccess('register-success', 'Регистрация успешна! Теперь войдите.');
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    showError('register-error', data.detail || data.message || 'Ошибка регистрации');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showError('register-error', 'Ошибка подключения к серверу');
+            }
+        });
+
+        // Вход
+        document.getElementById('login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            // Очищаем предыдущие сообщения
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('login-success')?.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('username', email);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    showError('login-error', 'Ошибка обработки ответа сервера');
+                    return;
+                }
+
+                if (response.ok) {
+                    if (data.access_token) {
+                        authToken = data.access_token;
+                        localStorage.setItem('auth_token', authToken);
+                        showDashboard();
+                    } else {
+                        showError('login-error', 'Токен доступа не получен');
+                    }
+                } else {
+                    showError('login-error', data.detail || data.message || 'Неверный email или пароль');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('login-error', 'Ошибка подключения к серверу');
+            }
+        });
+
+        // Загрузка списка банков
+        async function loadBanks() {
+            try {
+                const response = await fetch(`${API_BASE}/api/banks/available`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    // Токен истёк или нет доступа
+                    localStorage.removeItem('auth_token');
+                    authToken = null;
+                    showLogin();
+                    return;
+                }
+
+                if (response.ok) {
+                    let banks;
+                    try {
+                        banks = await response.json();
+                    } catch (parseError) {
+                        console.error('Failed to parse banks response:', parseError);
+                        showError('dashboard-error', 'Ошибка обработки ответа сервера');
+                        return;
+                    }
+
+                    const banksList = document.getElementById('banks-list');
+                    if (banks && Array.isArray(banks)) {
+                        banksList.innerHTML = banks.map(bank => `
+                            <div class="bank-item">
+                                <div>
+                                    <div class="bank-name">${escapeHtml(bank.name || 'Неизвестный банк')}</div>
+                                    <div class="bank-status">Код: ${escapeHtml(bank.code || 'N/A')}</div>
+                                </div>
+                                <button class="connect-btn" onclick="connectBank('${escapeHtml(bank.code)}')">
+                                    Подключить
+                                </button>
+                            </div>
+                        `).join('');
+                    } else {
+                        banksList.innerHTML = '<p style="color: #666; text-align: center;">Нет доступных банков</p>';
+                    }
+                } else {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = {};
+                    }
+                    showError('dashboard-error', errorData.detail || errorData.message || 'Ошибка загрузки списка банков');
+                }
+            } catch (error) {
+                console.error('Load banks error:', error);
+                showError('dashboard-error', 'Ошибка подключения к серверу');
+            }
+        }
+
+        // Загрузка подключений
+        async function loadConnections() {
+            try {
+                const response = await fetch(`${API_BASE}/api/banks/connections`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    // Токен истёк или нет доступа
+                    localStorage.removeItem('auth_token');
+                    authToken = null;
+                    showLogin();
+                    return;
+                }
+
+                if (response.ok) {
+                    let connections;
+                    try {
+                        connections = await response.json();
+                    } catch (parseError) {
+                        console.error('Failed to parse connections response:', parseError);
+                        showError('dashboard-error', 'Ошибка обработки ответа сервера');
+                        return;
+                    }
+
+                    const connectionsList = document.getElementById('connections-list');
+                    
+                    if (connections && Array.isArray(connections)) {
+                        if (connections.length === 0) {
+                            connectionsList.innerHTML = '<p style="color: #666; text-align: center;">Нет подключенных банков</p>';
+                        } else {
+                            connectionsList.innerHTML = connections.map(conn => {
+                                const connectedAt = conn.connected_at ? new Date(conn.connected_at).toLocaleString('ru-RU') : 'Неизвестно';
+                                return `
+                                    <div class="bank-item connected">
+                                        <div>
+                                            <div class="bank-name">${escapeHtml(conn.bank_name || 'Неизвестный банк')}</div>
+                                            <div class="bank-status">
+                                                Подключен: ${connectedAt}
+                                            </div>
+                                        </div>
+                                        <button class="connect-btn connected">Подключен</button>
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                    } else {
+                        connectionsList.innerHTML = '<p style="color: #666; text-align: center;">Нет подключенных банков</p>';
+                    }
+                } else {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = {};
+                    }
+                    showError('dashboard-error', errorData.detail || errorData.message || 'Ошибка загрузки подключений');
+                }
+            } catch (error) {
+                console.error('Load connections error:', error);
+                showError('dashboard-error', 'Ошибка подключения к серверу');
+            }
+        }
+
+        // Вспомогательная функция для экранирования HTML
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        let currentConnectingBank = null;
+
+        // Открытие модального окна для подключения банка
+        async function connectBank(bankCode) {
+            if (!bankCode) {
+                showError('dashboard-error', 'Код банка не указан');
+                return;
+            }
+
+            // Получаем информацию о банке
+            const banks = await loadBanksList();
+            const bank = banks.find(b => b.code === bankCode);
+            
+            if (!bank) {
+                showError('dashboard-error', 'Банк не найден');
+                return;
+            }
+
+            // Сохраняем код банка для подключения
+            currentConnectingBank = bankCode;
+            
+            // Показываем модальное окно
+            document.getElementById('modal-bank-name').textContent = `Подключение к ${bank.name}`;
+            document.getElementById('modal-client-id').value = '';
+            document.getElementById('modal-client-secret').value = '';
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('bank-connect-modal').classList.add('show');
+        }
+
+        // Закрытие модального окна
+        function closeBankModal() {
+            document.getElementById('bank-connect-modal').classList.remove('show');
+            currentConnectingBank = null;
+        }
+
+        // Получение списка банков (вспомогательная функция)
+        async function loadBanksList() {
+            try {
+                const response = await fetch(`${API_BASE}/api/banks/available`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                if (response.ok) {
+                    return await response.json();
+                }
+                return [];
+            } catch (error) {
+                console.error('Failed to load banks:', error);
+                return [];
+            }
+        }
+
+        // Обработчик формы подключения банка
+        document.getElementById('bank-connect-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentConnectingBank) {
+                showError('modal-error', 'Ошибка: код банка не указан');
+                return;
+            }
+
+            const clientId = document.getElementById('modal-client-id').value.trim();
+            const clientSecret = document.getElementById('modal-client-secret').value.trim();
+
+            if (!clientId || !clientSecret) {
+                showError('modal-error', 'Пожалуйста, заполните все поля');
+                return;
+            }
+
+            // Очищаем предыдущие ошибки
+            document.getElementById('modal-error').classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/banks/connect`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        bank_code: currentConnectingBank,
+                        client_id: clientId,
+                        client_secret: clientSecret
+                    })
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('auth_token');
+                    authToken = null;
+                    closeBankModal();
+                    showLogin();
+                    return;
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.error('Failed to parse connect response:', parseError);
+                    showError('modal-error', 'Ошибка обработки ответа сервера');
+                    return;
+                }
+
+                if (response.ok) {
+                    closeBankModal();
+                    const bankName = escapeHtml(data.bank_name || 'Банк');
+                    showSuccess('dashboard-success', `Банк ${bankName} успешно подключен!`);
+                    loadBanks();
+                    loadConnections();
+                } else {
+                    showError('modal-error', data.detail || data.message || 'Ошибка подключения банка');
+                }
+            } catch (error) {
+                console.error('Connect bank error:', error);
+                showError('modal-error', 'Ошибка подключения к серверу');
+            }
+        });
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('bank-connect-modal');
+            if (event.target === modal) {
+                closeBankModal();
+            }
+        }
+    </script>
+</body>
+</html>
+

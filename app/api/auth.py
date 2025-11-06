@@ -2,7 +2,6 @@
 API для аутентификации пользователей
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -68,17 +67,23 @@ async def register(
     return new_user
 
 
+class LoginRequest(BaseModel):
+    """Запрос на вход (JSON формат)"""
+    username: str  # email пользователя
+    password: str
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    login_data: LoginRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Авторизация пользователя"""
-    # Найти пользователя по email (username в форме - это email)
-    result = await db.execute(select(User).where(User.email == form_data.username))
+    """Авторизация пользователя (JSON формат)"""
+    # Найти пользователя по email (username в запросе - это email)
+    result = await db.execute(select(User).where(User.email == login_data.username))
     user = result.scalar_one_or_none()
     
-    if not user or not verify_password(form_data.password, user.password_hash):
+    if not user or not verify_password(login_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

@@ -467,14 +467,16 @@
             document.getElementById('login-error').classList.add('hidden');
             document.getElementById('login-success')?.classList.add('hidden');
 
-            const formData = new FormData();
-            formData.append('username', email);
-            formData.append('password', password);
-
             try {
                 const response = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: email,
+                        password: password
+                    })
                 });
 
                 let data;

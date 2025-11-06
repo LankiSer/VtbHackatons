@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # === БАНКИ (из песочницы) ===
     # Можно использовать локальные банки из Docker или внешние URL
     # Для локальных банков используйте USE_LOCAL_BANKS=true в .env
-    USE_LOCAL_BANKS: bool = True  # По умолчанию используем локальные банки из Docker
+    USE_LOCAL_BANKS: bool = False  # По умолчанию используем локальные банки из Docker
     
     # URL банков - автоматически выбираются на основе USE_LOCAL_BANKS
     # Локальные банки из Docker (запущенные через docker-compose)
@@ -36,24 +36,24 @@ class Settings(BaseSettings):
             "base_url": "http://vbank:8001",
             "auth_url": "http://vbank:8001/auth/bank-token",
             "well_known_url": "http://vbank:8001/.well-known/jwks.json",
-            "client_id": "team200",  # Замените на ваш client_id
-            "client_secret": "5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB"  # Замените на ваш secret
+            "client_id": "team227", 
+            "client_secret": "RKlNZd4YRCracyqH8I2LsdXHU2aq3yw9"
         },
         "abank": {
             "name": "A Bank",
             "base_url": "http://abank:8002",
             "auth_url": "http://abank:8002/auth/bank-token",
             "well_known_url": "http://abank:8002/.well-known/jwks.json",
-            "client_id": "team200",
-            "client_secret": "5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB"
+            "client_id": "team227",
+            "client_secret": "RKlNZd4YRCracyqH8I2LsdXHU2aq3yw9"
         },
         "sbank": {
             "name": "S Bank",
             "base_url": "http://sbank:8003",
             "auth_url": "http://sbank:8003/auth/bank-token",
             "well_known_url": "http://sbank:8003/.well-known/jwks.json",
-            "client_id": "team200",
-            "client_secret": "5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB"
+            "client_id": "team227",
+            "client_secret": "RKlNZd4YRCracyqH8I2LsdXHU2aq3yw9"
         }
     }
     
@@ -64,24 +64,24 @@ class Settings(BaseSettings):
             "base_url": "https://vbank.open.bankingapi.ru",
             "auth_url": "https://vbank.open.bankingapi.ru/auth/bank-token",
             "well_known_url": "https://vbank.open.bankingapi.ru/.well-known/jwks.json",
-            "client_id": "team200",
-            "client_secret": "5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB"
+            "client_id": "team227",
+            "client_secret": "RKlNZd4YRCracyqH8I2LsdXHU2aq3yw9"
         },
         "abank": {
             "name": "A Bank",
             "base_url": "https://abank.open.bankingapi.ru",
             "auth_url": "https://abank.open.bankingapi.ru/auth/bank-token",
             "well_known_url": "https://abank.open.bankingapi.ru/.well-known/jwks.json",
-            "client_id": "team200",
-            "client_secret": "5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB"
+            "client_id": "team227",
+            "client_secret": "RKlNZd4YRCracyqH8I2LsdXHU2aq3yw9"
         },
         "sbank": {
             "name": "S Bank",
             "base_url": "https://sbank.open.bankingapi.ru",
             "auth_url": "https://sbank.open.bankingapi.ru/auth/bank-token",
             "well_known_url": "https://sbank.open.bankingapi.ru/.well-known/jwks.json",
-            "client_id": "team200",
-            "client_secret": "5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB"
+            "client_id": "team227",
+            "client_secret": "RKlNZd4YRCracyqH8I2LsdXHU2aq3yw9"
         }
     }
     

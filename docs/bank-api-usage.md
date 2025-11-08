@@ -69,12 +69,8 @@ curl -X POST http://localhost:8000/api/banks/connections/vbank/consents \
 
 В ответе возвращаются `status`, `request_id` и (при автоодобрении) `consent_id`.
 
-
-
-
 curl -X GET http://localhost:8000/api/banks/connections/vbank/accounts \
   -H "Authorization: Bearer <access_token>"
-
 
 Ответ содержит `data` из банка, включая `accountNumber`, `balance`, `currency`.
 

@@ -277,14 +277,33 @@ async def get_bank_clients(
     bank_service = _build_bank_service(bank_code, connection)
 
     try:
-        response = await bank_service.get_clients()
+        response = await bank_service.get_clients(
+            access_token=connection.access_token,
+            requesting_bank=connection.team_client_id
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Failed to fetch clients: {str(e)}"
         )
 
-    clients = response.get("clients") or response.get("data", {}).get("clients") or []
+    if isinstance(response, list):
+        clients = response
+    elif isinstance(response, dict):
+        clients = response.get("clients")
+        if clients is None:
+            data_block = response.get("data")
+            if isinstance(data_block, list):
+                clients = data_block
+            elif isinstance(data_block, dict):
+                clients = data_block.get("clients")
+        if clients is None:
+            clients = []
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Unexpected clients payload type: {type(response).__name__}"
+        )
     return BankClientsResponse(clients=clients)
 
 
@@ -348,6 +367,7 @@ async def create_bank_consent(
 )
 async def get_bank_accounts(
     bank_code: str,
+    client_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -359,12 +379,20 @@ async def get_bank_accounts(
             detail=f"Bank '{bank_code}' is not connected"
         )
 
+    if not client_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="client_id is required to fetch accounts"
+        )
+
     bank_service = _build_bank_service(bank_code, connection)
 
     try:
         accounts = await bank_service.get_accounts(
             access_token=connection.access_token,
-            requesting_bank=connection.team_client_id
+            requesting_bank=connection.team_client_id,
+            client_id=client_id,
+            consent_id=connection.consent_id
         )
     except Exception as e:
         raise HTTPException(
@@ -386,6 +414,7 @@ async def get_bank_accounts(
 async def get_bank_transactions(
     bank_code: str,
     account_id: Optional[str] = None,
+    client_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -397,13 +426,27 @@ async def get_bank_transactions(
             detail=f"Bank '{bank_code}' is not connected"
         )
 
+    if not account_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="account_id is required to fetch transactions"
+        )
+
+    if not client_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="client_id is required to fetch transactions"
+        )
+
     bank_service = _build_bank_service(bank_code, connection)
 
     try:
         transactions = await bank_service.get_transactions(
             access_token=connection.access_token,
             account_id=account_id,
-            requesting_bank=connection.team_client_id
+            requesting_bank=connection.team_client_id,
+            client_id=client_id,
+            consent_id=connection.consent_id
         )
     except Exception as e:
         raise HTTPException(

@@ -37,16 +37,27 @@ class BankService:
     async def get_accounts(
         self,
         access_token: str,
-        requesting_bank: str | None = None
+        requesting_bank: str | None = None,
+        client_id: str | None = None,
+        consent_id: str | None = None
     ) -> Dict[str, Any]:
         """Получить счета клиента"""
+        params = {}
+        if client_id:
+            params["client_id"] = client_id
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "X-Requesting-Bank": requesting_bank or self.client_id or ""
+        }
+        if consent_id:
+            headers["X-Consent-Id"] = consent_id
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.base_url}/accounts",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "X-Requesting-Bank": requesting_bank or self.client_id or ""
-                },
+                headers=headers,
+                params=params or None,
                 timeout=30.0
             )
             
@@ -58,21 +69,31 @@ class BankService:
     async def get_transactions(
         self,
         access_token: str,
-        account_id: str | None = None,
-        requesting_bank: str | None = None
+        account_id: str,
+        requesting_bank: str | None = None,
+        client_id: str | None = None,
+        consent_id: str | None = None
     ) -> Dict[str, Any]:
         """Получить транзакции"""
-        url = f"{self.base_url}/transactions"
-        if account_id:
-            url += f"?account_id={account_id}"
-        
+        if not account_id:
+            raise Exception("account_id is required to fetch transactions")
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "X-Requesting-Bank": requesting_bank or self.client_id or ""
+        }
+        if consent_id:
+            headers["X-Consent-Id"] = consent_id
+
+        params = {}
+        if client_id:
+            params["client_id"] = client_id
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                url,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "X-Requesting-Bank": requesting_bank or self.client_id or ""
-                },
+                f"{self.base_url}/accounts/{account_id}/transactions",
+                headers=headers,
+                params=params or None,
                 timeout=30.0
             )
             
@@ -113,11 +134,22 @@ class BankService:
             
             return response.json()
 
-    async def get_clients(self) -> Dict[str, Any]:
+    async def get_clients(
+        self,
+        access_token: str | None = None,
+        requesting_bank: str | None = None
+    ) -> Dict[str, Any] | list[Any]:
         """Получить список клиентов банка (banker API)"""
+        headers = {}
+        if access_token:
+            headers["Authorization"] = f"Bearer {access_token}"
+        if requesting_bank or self.client_id:
+            headers["X-Requesting-Bank"] = requesting_bank or self.client_id or ""
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.base_url}/banker/clients",
+                headers=headers or None,
                 timeout=30.0
             )
 

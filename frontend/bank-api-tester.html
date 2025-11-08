@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Проверка мультибанковского API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f6f8fa;
+      color: #222;
+    }
+    h1, h2 {
+      margin-top: 24px;
+    }
+    section {
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    button {
+      background: #0969da;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0552b5;
+    }
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .col {
+      flex: 1;
+      min-width: 220px;
+    }
+    .output {
+      font-family: Consolas, "Courier New", monospace;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin-top: 12px;
+    }
+    .status {
+      margin: 8px 0;
+      font-size: 14px;
+      color: #24292f;
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+  </style>
+</head>
+<body>
+  <h1>Проверка мультибанковского API</h1>
+  <p>Страница помогает пройти полный сценарий: логин пользователя, подключение банка, получение клиентов, создание согласия, выгрузка счетов и операций.</p>
+
+  <section>
+    <h2>Настройки окружения</h2>
+    <div class="row">
+      <div class="col">
+        <label for="api-url">URL мультибанкового API</label>
+        <input id="api-url" type="text" value="http://localhost:8000" />
+      </div>
+      <div class="col">
+        <label for="bank-code">Код банка</label>
+        <select id="bank-code">
+          <option value="vbank">vbank</option>
+          <option value="abank">abank</option>
+          <option value="sbank">sbank</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="team-client-id">Client ID (команда)</label>
+        <input id="team-client-id" type="text" value="team200" />
+      </div>
+      <div class="col">
+        <label for="team-client-secret">Client Secret (команда)</label>
+        <input id="team-client-secret" type="text" value="5OAaa4DYzYKfnOU6zbR34ic5qMm7VSMB" />
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>1. Логин пользователя</h2>
+    <div class="row">
+      <div class="col">
+        <label for="user-login">Email пользователя</label>
+        <input id="user-login" type="email" placeholder="user@example.com" />
+      </div>
+      <div class="col">
+        <label for="user-password">Пароль</label>
+        <input id="user-password" type="password" placeholder="password" />
+      </div>
+    </div>
+    <button id="btn-login">Получить токен</button>
+    <div class="status" id="login-status"></div>
+    <textarea id="access-token" readonly placeholder="access_token появится здесь"></textarea>
+  </section>
+
+  <section>
+    <h2>2. Подключение банка</h2>
+    <button id="btn-connect">Создать подключение</button>
+    <button id="btn-connections" style="margin-left: 8px;">Список подключений</button>
+    <div class="status" id="connect-status"></div>
+    <div class="output" id="connections-output"></div>
+  </section>
+
+  <section>
+    <h2>3. Клиенты банка</h2>
+    <button id="btn-load-clients">Получить клиентов</button>
+    <div class="status" id="clients-status"></div>
+    <div class="output" id="clients-output"></div>
+    <label for="client-person-id">client_id (person_id) для согласия</label>
+    <input id="client-person-id" type="text" placeholder="cli-vb-001" />
+  </section>
+
+  <section>
+    <h2>4. Согласие</h2>
+    <label for="permissions">Permissions (через запятую)</label>
+    <input id="permissions" type="text" value="ReadAccountsDetail,ReadBalances,ReadTransactionsDetail" />
+    <label for="requesting-name">Имя запрашивающего приложения</label>
+    <input id="requesting-name" type="text" value="Multibank App" />
+    <button id="btn-create-consent">Создать согласие</button>
+    <div class="status" id="consent-status"></div>
+    <div class="output" id="consent-output"></div>
+  </section>
+
+  <section>
+    <h2>5. Счета</h2>
+    <button id="btn-load-accounts">Получить счета</button>
+    <div class="status" id="accounts-status"></div>
+    <div class="output" id="accounts-output"></div>
+  </section>
+
+  <section>
+    <h2>6. Транзакции</h2>
+    <label for="account-id">Номер счёта (для фильтрации, необязательно)</label>
+    <input id="account-id" type="text" placeholder="40817810099910001001" />
+    <button id="btn-load-transactions">Получить транзакции</button>
+    <div class="status" id="transactions-status"></div>
+    <div class="output" id="transactions-output"></div>
+  </section>
+
+  <section>
+    <h2>7. Отключение банка</h2>
+    <button id="btn-disconnect">Отключить выбранный банк</button>
+    <div class="status" id="disconnect-status"></div>
+  </section>
+
+  <section>
+    <h2>Журнал запросов</h2>
+    <div class="output" id="log-output"></div>
+  </section>
+
+  <script>
+    const state = {
+      accessToken: "",
+      lastConnection: null
+    };
+
+    const $ = id => document.getElementById(id);
+
+    function log(message) {
+      const logOutput = $("log-output");
+      const time = new Date().toLocaleTimeString();
+      logOutput.textContent = `[${time}] ${message}\n` + logOutput.textContent;
+    }
+
+    function setStatus(id, text) {
+      $(id).textContent = text || "";
+    }
+
+    function setOutput(id, data) {
+      if (!data) {
+        $(id).textContent = "";
+        return;
+      }
+      const formatted = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      $(id).textContent = formatted;
+    }
+
+    function getBaseUrl() {
+      return $("api-url").value.replace(/\/$/, "");
+    }
+
+    function getHeaders(isJson = true) {
+      if (!state.accessToken) {
+        throw new Error("Сначала получите access_token");
+      }
+      const headers = {
+        "Authorization": `Bearer ${state.accessToken}`
+      };
+      if (isJson) headers["Content-Type"] = "application/json";
+      return headers;
+    }
+
+    async function request(path, options = {}) {
+      const url = `${getBaseUrl()}${path}`;
+      log(`Запрос: ${options.method || "GET"} ${url}`);
+
+      try {
+        const response = await fetch(url, options);
+        const text = await response.text();
+        let json;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch (e) {
+          json = { raw: text };
+        }
+        log(`Ответ: ${response.status} ${response.statusText}`);
+        return { ok: response.ok, status: response.status, data: json };
+      } catch (error) {
+        log(`Ошибка запроса: ${error.message}`);
+        throw error;
+      }
+    }
+
+    $("btn-login").addEventListener("click", async () => {
+      const email = $("user-login").value.trim();
+      const password = $("user-password").value;
+      if (!email || !password) {
+        setStatus("login-status", "Укажите email и пароль");
+        return;
+      }
+      setStatus("login-status", "Запрос выполняется...");
+
+      try {
+        const result = await request("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: email, password })
+        });
+        if (!result.ok) {
+          setStatus("login-status", `Ошибка: ${result.status}`);
+          setOutput("access-token", result.data);
+          return;
+        }
+
+        state.accessToken = result.data.access_token;
+        $("access-token").value = state.accessToken;
+        setStatus("login-status", "Успешно. Токен сохранён.");
+      } catch (error) {
+        setStatus("login-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-connect").addEventListener("click", async () => {
+      const bankCode = $("bank-code").value;
+      const clientId = $("team-client-id").value.trim();
+      const clientSecret = $("team-client-secret").value.trim();
+
+      if (!clientId || !clientSecret) {
+        setStatus("connect-status", "Укажите client_id и client_secret");
+        return;
+      }
+      setStatus("connect-status", "Запрос выполняется...");
+
+      try {
+        const result = await request("/api/banks/connect", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            bank_code: bankCode,
+            client_id: clientId,
+            client_secret: clientSecret
+          })
+        });
+
+        if (!result.ok) {
+          setStatus("connect-status", `Ошибка: ${result.status}`);
+          setOutput("connections-output", result.data);
+          return;
+        }
+
+        state.lastConnection = result.data;
+        setStatus("connect-status", "Подключение создано.");
+        setOutput("connections-output", result.data);
+      } catch (error) {
+        setStatus("connect-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-connections").addEventListener("click", async () => {
+      setStatus("connect-status", "Загружается список подключений...");
+      try {
+        const result = await request("/api/banks/connections", {
+          method: "GET",
+          headers: getHeaders(false)
+        });
+        if (!result.ok) {
+          setStatus("connect-status", `Ошибка: ${result.status}`);
+          setOutput("connections-output", result.data);
+          return;
+        }
+        setStatus("connect-status", `Найдено подключений: ${result.data.length}`);
+        setOutput("connections-output", result.data);
+      } catch (error) {
+        setStatus("connect-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-load-clients").addEventListener("click", async () => {
+      const bankCode = $("bank-code").value;
+      setStatus("clients-status", "Загрузка клиентов...");
+      try {
+        const result = await request(`/api/banks/connections/${bankCode}/clients`, {
+          method: "GET",
+          headers: getHeaders(false)
+        });
+        if (!result.ok) {
+          setStatus("clients-status", `Ошибка: ${result.status}`);
+          setOutput("clients-output", result.data);
+          return;
+        }
+        setStatus("clients-status", `Получено клиентов: ${result.data.clients.length}`);
+        setOutput("clients-output", result.data.clients);
+        const firstClient = result.data.clients[0];
+        if (firstClient && firstClient.person_id) {
+          $("client-person-id").value = firstClient.person_id;
+        }
+      } catch (error) {
+        setStatus("clients-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-create-consent").addEventListener("click", async () => {
+      const bankCode = $("bank-code").value;
+      const clientId = $("client-person-id").value.trim();
+      const permissions = $("permissions").value.split(",").map(p => p.trim()).filter(Boolean);
+      const requestingName = $("requesting-name").value.trim() || "Multibank App";
+
+      if (!clientId) {
+        setStatus("consent-status", "Укажите client_id клиента (person_id)");
+        return;
+      }
+      setStatus("consent-status", "Создание согласия...");
+
+      try {
+        const result = await request(`/api/banks/connections/${bankCode}/consents`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            client_id: clientId,
+            permissions,
+            requesting_bank_name: requestingName
+          })
+        });
+        if (!result.ok) {
+          setStatus("consent-status", `Ошибка: ${result.status}`);
+          setOutput("consent-output", result.data);
+          return;
+        }
+        setStatus("consent-status", `Согласие статус: ${result.data.status}`);
+        setOutput("consent-output", result.data);
+      } catch (error) {
+        setStatus("consent-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-load-accounts").addEventListener("click", async () => {
+      const bankCode = $("bank-code").value;
+      const clientId = $("client-person-id").value.trim();
+      if (!clientId) {
+        setStatus("accounts-status", "Укажите client_id клиента перед запросом счетов");
+        return;
+      }
+      setStatus("accounts-status", "Загрузка счетов...");
+      try {
+        const result = await request(`/api/banks/connections/${bankCode}/accounts?client_id=${encodeURIComponent(clientId)}`, {
+          method: "GET",
+          headers: getHeaders(false)
+        });
+        if (!result.ok) {
+          setStatus("accounts-status", `Ошибка: ${result.status}`);
+          setOutput("accounts-output", result.data);
+          return;
+        }
+        setStatus("accounts-status", "Счета получены.");
+        setOutput("accounts-output", result.data);
+        const accounts = result.data.data?.account || result.data.account || [];
+        if (accounts && accounts.length) {
+          $("account-id").value = accounts[0].accountId || accounts[0].account_id || "";
+        }
+      } catch (error) {
+        setStatus("accounts-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-load-transactions").addEventListener("click", async () => {
+      const bankCode = $("bank-code").value;
+      const accountId = $("account-id").value.trim();
+      const clientId = $("client-person-id").value.trim();
+      if (!clientId) {
+        setStatus("transactions-status", "Укажите client_id клиента");
+        return;
+      }
+      if (!accountId) {
+        setStatus("transactions-status", "Укажите account_id (значение accountId из ответа счетов)");
+        return;
+      }
+      const query = `?account_id=${encodeURIComponent(accountId)}&client_id=${encodeURIComponent(clientId)}`;
+      setStatus("transactions-status", "Загрузка транзакций...");
+
+      try {
+        const result = await request(`/api/banks/connections/${bankCode}/transactions${query}`, {
+          method: "GET",
+          headers: getHeaders(false)
+        });
+        if (!result.ok) {
+          setStatus("transactions-status", `Ошибка: ${result.status}`);
+          setOutput("transactions-output", result.data);
+          return;
+        }
+        setStatus("transactions-status", "Транзакции получены.");
+        setOutput("transactions-output", result.data);
+      } catch (error) {
+        setStatus("transactions-status", `Ошибка: ${error.message}`);
+      }
+    });
+
+    $("btn-disconnect").addEventListener("click", async () => {
+      const bankCode = $("bank-code").value;
+      setStatus("disconnect-status", "Отключение...");
+
+      try {
+        const result = await request(`/api/banks/connections/${bankCode}`, {
+          method: "DELETE",
+          headers: getHeaders(false)
+        });
+        if (!result.ok) {
+          setStatus("disconnect-status", `Ошибка: ${result.status}`);
+          return;
+        }
+        setStatus("disconnect-status", "Банк отключён.");
+      } catch (error) {
+        setStatus("disconnect-status", `Ошибка: ${error.message}`);
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -69,24 +69,17 @@ curl -X POST http://localhost:8000/api/banks/connections/vbank/consents \
 
 В ответе возвращаются `status`, `request_id` и (при автоодобрении) `consent_id`.
 
-curl -X GET http://localhost:8000/api/banks/connections/vbank/accounts \
+curl -X GET "http://localhost:8000/api/banks/connections/vbank/accounts?client_id=cli-vb-001" \
   -H "Authorization: Bearer <access_token>"
 
-Ответ содержит `data` из банка, включая `accountNumber`, `balance`, `currency`.
+Ответ содержит `data` из банка, включая `accountNumber`, `balance`, `currency` и поле `accountId` (формат `acc-123`). Используйте значение `accountId` для запроса транзакций.
 
 Получение транзакций
-
-Все транзакции клиента:
-
-
-curl -X GET "http://localhost:8000/api/banks/connections/vbank/transactions" \
-  -H "Authorization: Bearer <access_token>"
-
 
 Транзакции по конкретному счёту:
 
 
-curl -X GET "http://localhost:8000/api/banks/connections/vbank/transactions?account_id=40817810099910001001" \
+curl -X GET "http://localhost:8000/api/banks/connections/vbank/transactions?account_id=acc-1&client_id=cli-vb-001" \
   -H "Authorization: Bearer <access_token>"
 
 

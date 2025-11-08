@@ -15,6 +15,8 @@ class BankConnection(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     bank_code = Column(String(50), nullable=False, index=True)  # vbank, abank, sbank
     bank_name = Column(String(255))
+    team_client_id = Column(String(100), nullable=True)  # team227-1
+    team_client_secret = Column(Text, nullable=True)  # хранится для обновления токена
     
     # OAuth токены (зашифрованные)
     access_token = Column(Text, nullable=False)  # Зашифрованный токен

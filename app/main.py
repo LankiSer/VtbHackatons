@@ -4,7 +4,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import init_db, engine
@@ -61,6 +61,11 @@ app.include_router(banks.router)
 # Статические файлы для фронтенда
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.exists(frontend_path):
+    app.mount(
+        "/assets",
+        StaticFiles(directory=os.path.join(frontend_path, "assets")),
+        name="frontend-assets",
+    )
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
 
@@ -81,6 +86,15 @@ async def root():
         </body>
     </html>
     """
+
+
+@app.get("/favicon.svg")
+async def favicon():
+    """Возврат иконки фронтенда"""
+    favicon_path = os.path.join(frontend_path, "favicon.svg")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path, media_type="image/svg+xml")
+    return HTMLResponse(status_code=404)
 
 
 @app.get("/health")

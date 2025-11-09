@@ -95,7 +95,11 @@ class Settings(BaseSettings):
         "http://localhost:8080",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8080",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://0.0.0.0:8000",
     ]
+    CORS_ORIGIN_REGEX: str | None = r"http://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?"
     
     class Config:
         env_file = ".env"

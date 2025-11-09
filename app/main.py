@@ -1,7 +1,7 @@
 """
 Главный файл приложения
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
@@ -52,6 +52,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
 )
 
 # Подключение роутеров
@@ -61,11 +62,6 @@ app.include_router(banks.router)
 # Статические файлы для фронтенда
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.exists(frontend_path):
-    app.mount(
-        "/assets",
-        StaticFiles(directory=os.path.join(frontend_path, "assets")),
-        name="frontend-assets",
-    )
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
 
@@ -95,6 +91,15 @@ async def favicon():
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path, media_type="image/svg+xml")
     return HTMLResponse(status_code=404)
+
+
+@app.get("/assets/{path:path}")
+async def frontend_asset(path: str):
+    """Раздача собранных фронтенд-ресурсов"""
+    asset_path = os.path.join(frontend_path, "assets", path)
+    if os.path.exists(asset_path):
+        return FileResponse(asset_path)
+    raise HTTPException(status_code=404)
 
 
 @app.get("/health")

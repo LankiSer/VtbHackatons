@@ -5,6 +5,33 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin</title>
+    <script>
+      (function () {
+        const origin = window.location.origin;
+
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+          if (typeof url === "string" && url.startsWith("http://0.0.0.0:8000")) {
+            url = url.replace("http://0.0.0.0:8000", origin);
+          }
+          return originalOpen.call(this, method, url, ...rest);
+        };
+
+        const originalFetch = window.fetch;
+        window.fetch = function (input, init) {
+          if (typeof input === "string" && input.startsWith("http://0.0.0.0:8000")) {
+            input = input.replace("http://0.0.0.0:8000", origin);
+          } else if (input && typeof input.url === "string" && input.url.startsWith("http://0.0.0.0:8000")) {
+            const cloned = new Request(
+              input.url.replace("http://0.0.0.0:8000", origin),
+              input
+            );
+            return originalFetch.call(this, cloned, init);
+          }
+          return originalFetch.call(this, input, init);
+        };
+      })();
+    </script>
     <script type="module" crossorigin src="/assets/index-Ri1yQtvo.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-B1H8r5NI.css">
   </head>
